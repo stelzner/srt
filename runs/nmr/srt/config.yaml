@@ -1,0 +1,24 @@
+
+data:
+  dataset: nmr
+  num_points: 8192
+model:
+  encoder_kwargs:
+    pos_start_octave: -5
+  decoder: lightfield
+  decoder_kwargs:
+    pos_start_octave: -5
+
+training:
+  num_workers: 12
+  batch_size: 256
+  model_selection_metric: psnr
+  model_selection_mode: maximize
+  print_every: 10
+  visualize_every: 5000
+  validate_every: 5000
+  checkpoint_every: 1000
+  backup_every: 100000
+  max_it: 4000000
+  decay_it: 4000000
+  lr_warmup: 2500

@@ -1,0 +1,9 @@
+sunds>=0.4.1
+tensorflow>=2.6
+einops>=0.4.1
+wandb
+pyyaml
+imageio
+matplotlib
+tqdm
+opencv-python
