@@ -17,14 +17,8 @@ from srt.trainer import SRTTrainer
 from compile_video import compile_video_render
 
 
-def downsample(x, steps=2):
-    factor = 2**steps
-    return x[..., factor//2::factor, factor//2::factor, :]
-
 def get_camera_rays_render(camera_pos, **kwargs):
     rays = get_camera_rays(camera_pos[0], **kwargs)
-    if args.downsample is not None:
-        return downsample(rays, steps=args.downsample)
     return np.expand_dims(rays, 0)
 
 def lerp(x, y, t):
@@ -72,13 +66,13 @@ def rotate_camera(camera_pos, rays, t):
     return camera_pos, rays
 
 
-def render3d(trainer, render_path, z, camera_pos, rays, motion, transform=None, **render_kwargs):
+def render3d(trainer, render_path, z, camera_pos, motion, transform=None, resolution=None, **render_kwargs):
     if transform is not None:  # Project camera into world space before applying motion transformations
         inv_transform = torch.inverse(transform)
         camera_pos = transform_points_torch(camera_pos, inv_transform)
-        rays = transform_points_torch(rays, inv_transform, translate=False)
 
     camera_pos_np = camera_pos.cpu().numpy()
+    rays = torch.Tensor(get_camera_rays_render(camera_pos_np, **resolution)).to(camera_pos)
 
     for frame in tqdm(range(args.num_frames)):
         t = frame / args.num_frames
@@ -90,7 +84,7 @@ def render3d(trainer, render_path, z, camera_pos, rays, motion, transform=None, 
             sensor_max = 0.032
             sensor_min = sensor_max / 5
             sensor_cur = lerp(sensor_max, sensor_min, frame / args.num_frames)
-            cur_rays = get_camera_rays_render(camera_pos_np, sensor_width=sensor_cur)
+            cur_rays = get_camera_rays_render(camera_pos_np, sensor_width=sensor_cur, **resolution)
             cur_rays = torch.Tensor(cur_rays).float().cuda()
             cur_camera_pos = camera_pos
         elif motion == 'closeup':  # Move camera towards center of the scene, pan up slightly
@@ -102,7 +96,7 @@ def render3d(trainer, render_path, z, camera_pos, rays, motion, transform=None, 
         elif motion == 'eyeroll':  # Stationary camera, tracking circle around the scene
             theta = -t * 2 * math.pi
             track_point = 1.5 * np.array((math.cos(theta), math.sin(theta), 0))
-            cur_rays = get_camera_rays_render(camera_pos_np, track_point=track_point)
+            cur_rays = get_camera_rays_render(camera_pos_np, track_point=track_point, **resolution)
             cur_rays = torch.Tensor(cur_rays).float().cuda()
             cur_camera_pos = camera_pos
         else:
@@ -143,16 +137,17 @@ def process_scene(sceneid):
     input_camera_pos = torch.Tensor(data['input_camera_pos']).to(device).unsqueeze(0)
     input_rays = torch.Tensor(data['input_rays']).to(device).unsqueeze(0)
 
-    render_rays = input_rays[:, 0]
-    if args.downsample is not None:
-        render_rays = downsample(render_rays, args.downsample)
+    resolution = {'height': input_rays.shape[2],
+                  'width': input_rays.shape[3]}
+    if args.height is not None:
+        resolution['height'] = args.height
+    if args.width is not None:
+        resolution['width'] = args.width
 
     if 'transform' in data:
         transform = torch.Tensor(data['transform']).to(device)
     else:
         transform = None
-
-    height, width = render_rays.shape[-3:-1]
 
     for i in range(input_images.shape[1]):
         input_np = (np.transpose(data['input_images'][i], (1, 2, 0)) * 255.).astype(np.uint8)
@@ -161,8 +156,8 @@ def process_scene(sceneid):
     with torch.no_grad():
         z = model.encoder(input_images, input_camera_pos, input_rays)
                                           
-        render3d(trainer, render_path, z, input_camera_pos[:, 0], render_rays,
-                 motion=args.motion, transform=transform, **render_kwargs)
+        render3d(trainer, render_path, z, input_camera_pos[:, 0],
+                 motion=args.motion, transform=transform, resolution=resolution, **render_kwargs)
 
     if not args.novideo:
         compile_video_render(render_path)
@@ -178,7 +173,8 @@ if __name__ == '__main__':
     parser.add_argument('--sceneid', type=int, default=0, help='Id of the scene to render.')
     parser.add_argument('--sceneid-start', type=int, help='Id of the scene to render.')
     parser.add_argument('--sceneid-stop', type=int, help='Id of the scene to render.')
-    parser.add_argument('--downsample', type=int, help='Number of downsampling steps.')
+    parser.add_argument('--height', type=int, help='Rendered image height in pixels. Defaults to input image height.')
+    parser.add_argument('--width', type=int, help='Rendered image width in pixels. Defaults to input image width.')
     parser.add_argument('--name', type=str, help='Name of this sequence.')
     parser.add_argument('--motion', type=str, default='rotate', help='Type of sequence.')
     parser.add_argument('--sharpen', action='store_true', help='Square density values for sharper surfaces.')
