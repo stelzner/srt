@@ -76,12 +76,12 @@ If you have the compute to spare to train SRT for the full 4 million iterations,
 ### Known Issues
 On the NMR dataset, SRT overfits to the 24 camera positions in the training dataset (left). It will generally not produce coherent images when given other cameras at test time (right).
 
-<img src="https://drive.google.com/uc?id=1ps9txhEghQOg1nADskt-3ok7umUQ9-jr" alt="NMR Fail" width="512"/>
+<img src="https://drive.google.com/uc?id=1ps9txhEghQOg1nADskt-3ok7umUQ9-jr" alt="NMR Camera Overfitting" width="512"/>
 
 On the MSN dataset, this is not an issue, as cameras are densely sampled in the training data.
 The model even has some ability to produce closeups which use cameras outside of the training distribution.
 
-<img src="https://drive.google.com/uc?id=1buhq_iVmuqn9TQXIowGjqPn-52Z2LG6A" alt="NMR Fail" width="512"/>
+<img src="https://drive.google.com/uc?id=1buhq_iVmuqn9TQXIowGjqPn-52Z2LG6A" alt="MSN Closeup" width="512"/>
 
 ## Citation
 
