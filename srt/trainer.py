@@ -94,7 +94,9 @@ class SRTTrainer:
 
     def eval_step(self, data, full_scale=False):
         with torch.no_grad():
-            mse, loss_terms = self.compute_loss(data, 1000000)
+            loss, loss_terms = self.compute_loss(data, 1000000)
+
+        mse = loss_terms['mse']
         psnr = mse2psnr(mse)
         return {'psnr': psnr, 'mse': mse, **loss_terms}
 
