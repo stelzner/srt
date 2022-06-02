@@ -106,7 +106,7 @@ class SRTTrainer:
             rays [n, h, w, 3]: ray directions
             render_kwargs: kwargs passed on to decoder
         """
-        height, width = rays.shape[1:3]
+        batch_size, height, width = rays.shape[:3]
         rays = rays.flatten(1, 2)
         camera_pos = camera_pos.unsqueeze(1).repeat(1, rays.shape[1], 1)
 
@@ -124,6 +124,7 @@ class SRTTrainer:
         agg_extras = {}
         for key in all_extras[0]:
             agg_extras[key] = torch.cat([extras[key] for extras in all_extras], 1)
+            agg_extras[key] = agg_extras[key].view(batch_size, height, width, -1)
 
         img = img.view(img.shape[0], height, width, 3)
         return img, agg_extras
