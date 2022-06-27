@@ -66,12 +66,10 @@ Here you find some checkpoints which partially reproduce the quantitative result
 
 |Run | Training Iterations | Test Set PSNR | Download |
 |---|---|---|---|
-|`nmr/srt` |3.000.000 | 27.28 |[Link](https://drive.google.com/file/d/1gBSMKBduIgweWsVdUSxK-ugGwb0QFd3D/view?usp=sharing)|
-|`msn/srt` |1.925.000*| 22.91 |[Link](https://drive.google.com/file/d/17BNjsxeZKfgES4XIifUQT5XCQgm8YERZ/view?usp=sharing)|
+|`nmr/srt` |3 Million | 27.28 |[Link](https://drive.google.com/file/d/1gBSMKBduIgweWsVdUSxK-ugGwb0QFd3D/view?usp=sharing)|
+|`msn/srt` |4 Million*| 23.39 |[Link](https://drive.google.com/file/d/1cGxY-g99u63Jj_DcmUIudCfJk5yVsu68/view?usp=sharing)|
 
 (\*) The MSN run was largely trained with a batch size of 192, due to memory constrains.
-
-If you have the compute to spare to train SRT for the full 4 million iterations, please reach out and let me know how it goes!
 
 ### Known Issues
 On the NMR dataset, SRT overfits to the 24 camera positions in the training dataset (left). It will generally not produce coherent images when given other cameras at test time (right).
