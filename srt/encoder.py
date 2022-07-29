@@ -19,32 +19,29 @@ class SRTConvBlock(nn.Module):
             nn.ReLU(),
             nn.Conv2d(hdim, odim, stride=2, **conv_kwargs),
             nn.ReLU())
-    
+
     def forward(self, x):
         return self.layers(x)
 
 
 class SRTEncoder(nn.Module):
-    def __init__(self, num_conv_blocks=4, num_att_blocks=10, pos_start_octave=0):
+    def __init__(self, num_conv_blocks=4, num_att_blocks=10, pos_start_octave=0,
+                 use_linear_features=True):
         super().__init__()
+        self.use_linear_features = use_linear_features
         self.ray_encoder = RayEncoder(pos_octaves=15, pos_start_octave=pos_start_octave,
                                       ray_octaves=15)
 
-        conv_blocks = [SRTConvBlock(idim=183, hdim=96)]
-        cur_hdim = 96
+        ray_enc_dims = 180 + (3 if use_linear_features else 0)
+        conv_blocks = [SRTConvBlock(idim=ray_enc_dims, hdim=96)]
+        cur_hdim = 192
         for i in range(1, num_conv_blocks):
-            if cur_hdim < 1536:
-                cur_hdim *= 2
+            conv_blocks.append(SRTConvBlock(idim=cur_hdim, odim=None))
+            cur_hdim *= 2
 
-            if cur_hdim < 1536:
-                output_dim = None
-            else:
-                output_dim = cur_hdim
-
-            conv_blocks.append(SRTConvBlock(idim=cur_hdim, odim=output_dim))
         self.conv_blocks = nn.Sequential(*conv_blocks)
 
-        self.per_patch_linear = nn.Conv2d(1536, 768, kernel_size=1)
+        self.per_patch_linear = nn.Conv2d(cur_hdim, 768, kernel_size=1)
 
         self.pixel_embedding = nn.Parameter(torch.randn(1, 768, 15, 20))
         self.canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768))
@@ -76,7 +73,11 @@ class SRTEncoder(nn.Module):
                 (1. - canonical_idxs) * self.non_canonical_camera_embedding
 
         ray_enc = self.ray_encoder(camera_pos, rays)
-        x = torch.cat((x, ray_enc), 1)
+        if self.use_linear_features:
+            x = torch.cat((x, ray_enc), 1)
+        else:
+            x = ray_enc
+
         x = self.conv_blocks(x)
         x = self.per_patch_linear(x)
         height, width = x.shape[2:]
