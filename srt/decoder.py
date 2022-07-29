@@ -46,20 +46,19 @@ class SRTDecoder(nn.Module):
 class NerfNet(nn.Module):
     def __init__(self, num_att_blocks=2, pos_start_octave=0):
         super().__init__()
-        self.query_encoder = RayEncoder(pos_octaves=15, pos_start_octave=pos_start_octave,
-                                        ray_octaves=15)
+        self.pos_encoder = PositionalEncoding(num_octaves=15, start_octave=pos_start_octave)
 
-        self.transformer = Transformer(180, depth=num_att_blocks, heads=12, dim_head=64,
+        self.transformer = Transformer(90, depth=num_att_blocks, heads=12, dim_head=64,
                                        mlp_dim=1536, selfatt=False)
 
         self.color_predictor = nn.Sequential(
-            nn.Linear(180, 128),
+            nn.Linear(90, 128),
             nn.ReLU(),
             nn.Linear(128, 3),
             nn.Sigmoid())
 
         self.density_predictor = nn.Sequential(
-            nn.Linear(180, 128),
+            nn.Linear(90, 128),
             nn.ReLU(),
             nn.Linear(128, 1),
             nn.Softplus())
@@ -72,8 +71,8 @@ class NerfNet(nn.Module):
             x: query points [batch_size, num_rays, 3]
             rays: query ray directions [batch_size, num_rays, 3]
         """
-        queries = self.query_encoder(x, rays)
-        h = self.transformer(queries, z)
+        pos_enc = self.pos_encoder(x)
+        h = self.transformer(pos_enc, z)
 
         densities = self.density_predictor(h).squeeze(-1)
         colors = self.color_predictor(h)
