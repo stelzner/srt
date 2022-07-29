@@ -43,17 +43,25 @@ class SRTEncoder(nn.Module):
 
         self.per_patch_linear = nn.Conv2d(cur_hdim, 768, kernel_size=1)
 
+        # Original SRT initializes with stddev=1/math.sqrt(d).
+        # But model initialization likely also differs between torch & jax, and this worked, so, eh.
         self.pixel_embedding = nn.Parameter(torch.randn(1, 768, 15, 20))
         self.canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768))
         self.non_canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768))
 
+        # SRT as in the CVPR paper does not use actual self attention, but a special type:
+        # the current features in the Nth layer don't self-attend, but they always attend into the initial patch embedding
+        # (i.e., the output of the CNN). SRT further used post-normalization rather than pre-normalization.
+        # Since then though, in OSRT, pre-norm and regular self-attention was found to perform better overall.
+        # So that's what we do here, though it may be less stable under some circumstances.
         self.transformer = Transformer(768, depth=num_att_blocks, heads=12, dim_head=64,
                                        mlp_dim=1536, selfatt=True)
 
     def forward(self, images, camera_pos, rays):
         """
         Args:
-            images: [batch_size, num_images, 3, height, width]. Assume the first image is canonical.
+            images: [batch_size, num_images, 3, height, width].
+                Assume the first image is canonical - shuffling happens in the data loader.
             camera_pos: [batch_size, num_images, 3]
             rays: [batch_size, num_images, height, width, 3]
         Returns:
