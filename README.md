@@ -71,6 +71,9 @@ Here you find some checkpoints which partially reproduce the quantitative result
 
 (\*) The MSN run was largely trained with a batch size of 192, due to memory constrains.
 
+Also note that the config for these runs slightly differs from the current default, as I have
+learned additional details on SRT since.
+
 ### Known Issues
 On the NMR dataset, SRT overfits to the 24 camera positions in the training dataset (left). It will generally not produce coherent images when given other cameras at test time (right).
 
