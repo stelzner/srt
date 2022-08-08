@@ -8,7 +8,6 @@ model:
   decoder: nerf
   decoder_kwargs:
     pos_start_octave: -5
-    max_density: 20
 training:
   num_workers: 6
   batch_size: 32

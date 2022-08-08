@@ -5,7 +5,7 @@ from tqdm import tqdm
 import srt.utils.visualize as vis
 from srt.utils.common import mse2psnr, reduce_dict, gather_all
 from srt.utils import nerf
-from srt.utils.common import get_rank
+from srt.utils.common import get_rank, get_world_size
 
 import os
 import math
@@ -113,7 +113,7 @@ class SRTTrainer:
         camera_pos = camera_pos.unsqueeze(1).repeat(1, rays.shape[1], 1)
 
         max_num_rays = self.config['data']['num_points'] * \
-                self.config['training']['batch_size'] // rays.shape[0]
+                self.config['training']['batch_size'] // (rays.shape[0] * get_world_size())
         num_rays = rays.shape[1]
         img = torch.zeros_like(rays)
         all_extras = []
@@ -140,7 +140,7 @@ class SRTTrainer:
             input_images = data.get('input_images').to(device)
             input_camera_pos = data.get('input_camera_pos').to(device)
             input_rays = data.get('input_rays').to(device)
-            
+
             camera_pos_base = input_camera_pos[:, 0]
             input_rays_base = input_rays[:, 0]
 

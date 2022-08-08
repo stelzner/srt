@@ -44,21 +44,25 @@ class SRTDecoder(nn.Module):
 
 
 class NerfNet(nn.Module):
-    def __init__(self, num_att_blocks=2, pos_start_octave=0, max_density=None):
+    def __init__(self, num_att_blocks=2, pos_start_octave=0):
         super().__init__()
         self.pos_encoder = PositionalEncoding(num_octaves=15, start_octave=pos_start_octave)
-        self.ray_encoder = PositionalEncoding(num_octaves=15)
 
         self.transformer = Transformer(90, depth=num_att_blocks, heads=12, dim_head=64,
                                        mlp_dim=1536, selfatt=False)
 
         self.color_predictor = nn.Sequential(
-            nn.Linear(179, 256),
+            nn.Linear(90, 128),
             nn.ReLU(),
-            nn.Linear(256, 3),
+            nn.Linear(128, 3),
             nn.Sigmoid())
 
-        self.max_density = max_density
+        self.density_predictor = nn.Sequential(
+            nn.Linear(90, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1),
+            nn.Softplus())
+
 
     def forward(self, z, x, rays):
         """
@@ -70,27 +74,17 @@ class NerfNet(nn.Module):
         pos_enc = self.pos_encoder(x)
         h = self.transformer(pos_enc, z)
 
-        density = h[..., 0]
-        if self.max_density is not None and self.max_density > 0.:
-            density = torch.sigmoid(density) * self.max_density
-        else:
-            density = nn.functional.relu(density)
-
-        h = h[..., 1:]
-
-        ray_enc = self.ray_encoder(rays)
-        h = torch.cat((h, ray_enc), -1)
+        densities = self.density_predictor(h).squeeze(-1)
         colors = self.color_predictor(h)
 
-        return density, colors
+        return densities, colors
 
 
 class NerfDecoder(nn.Module):
-    def __init__(self, num_att_blocks=2, pos_start_octave=0, max_density=None, use_fine_net=True):
+    def __init__(self, num_att_blocks=2, pos_start_octave=0, use_fine_net=False):
         super().__init__()
         nerf_kwargs = {'num_att_blocks': num_att_blocks,
-                       'pos_start_octave': pos_start_octave,
-                       'max_density': max_density}
+                       'pos_start_octave': pos_start_octave}
 
         self.coarse_net = NerfNet(**nerf_kwargs)
         if use_fine_net:
