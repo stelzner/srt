@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 from srt.layers import RayEncoder, Transformer
 
+import math
+
 
 class SRTConvBlock(nn.Module):
     def __init__(self, idim, hdim=None, odim=None):
@@ -26,14 +28,12 @@ class SRTConvBlock(nn.Module):
 
 class SRTEncoder(nn.Module):
     def __init__(self, num_conv_blocks=4, num_att_blocks=10, pos_start_octave=0,
-                 use_linear_features=True):
+                 scale_embeddings=False):
         super().__init__()
-        self.use_linear_features = use_linear_features
         self.ray_encoder = RayEncoder(pos_octaves=15, pos_start_octave=pos_start_octave,
                                       ray_octaves=15)
 
-        ray_enc_dims = 180 + (3 if use_linear_features else 0)
-        conv_blocks = [SRTConvBlock(idim=ray_enc_dims, hdim=96)]
+        conv_blocks = [SRTConvBlock(idim=183, hdim=96)]
         cur_hdim = 192
         for i in range(1, num_conv_blocks):
             conv_blocks.append(SRTConvBlock(idim=cur_hdim, odim=None))
@@ -45,15 +45,18 @@ class SRTEncoder(nn.Module):
 
         # Original SRT initializes with stddev=1/math.sqrt(d).
         # But model initialization likely also differs between torch & jax, and this worked, so, eh.
-        self.pixel_embedding = nn.Parameter(torch.randn(1, 768, 15, 20))
-        self.canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768))
-        self.non_canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768))
+        embedding_stdev = (1./math.sqrt(768)) if scale_embeddings else 1.
+        self.pixel_embedding = nn.Parameter(torch.randn(1, 768, 15, 20) * embedding_stdev)
+        self.canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768) * embedding_stdev)
+        self.non_canonical_camera_embedding = nn.Parameter(torch.randn(1, 1, 768) * embedding_stdev)
 
         # SRT as in the CVPR paper does not use actual self attention, but a special type:
-        # the current features in the Nth layer don't self-attend, but they always attend into the initial patch embedding
-        # (i.e., the output of the CNN). SRT further used post-normalization rather than pre-normalization.
-        # Since then though, in OSRT, pre-norm and regular self-attention was found to perform better overall.
-        # So that's what we do here, though it may be less stable under some circumstances.
+        # the current features in the Nth layer don't self-attend, but they
+        # always attend into the initial patch embedding (i.e., the output of
+        # the CNN). SRT further used post-normalization rather than
+        # pre-normalization.  Since then though, in OSRT, pre-norm and regular
+        # self-attention was found to perform better overall.  So that's what
+        # we do here, though it may be less stable under some circumstances.
         self.transformer = Transformer(768, depth=num_att_blocks, heads=12, dim_head=64,
                                        mlp_dim=1536, selfatt=True)
 
@@ -81,10 +84,7 @@ class SRTEncoder(nn.Module):
                 (1. - canonical_idxs) * self.non_canonical_camera_embedding
 
         ray_enc = self.ray_encoder(camera_pos, rays)
-        if self.use_linear_features:
-            x = torch.cat((x, ray_enc), 1)
-        else:
-            x = ray_enc
+        x = torch.cat((x, ray_enc), 1)
 
         x = self.conv_blocks(x)
         x = self.per_patch_linear(x)

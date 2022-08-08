@@ -5,7 +5,6 @@ data:
 model:
   encoder_kwargs:
     pos_start_octave: -5
-    use_linear_features: False
   decoder: nerf
   decoder_kwargs:
     pos_start_octave: -5
