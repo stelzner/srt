@@ -85,7 +85,6 @@ class SRTEncoder(nn.Module):
 
         ray_enc = self.ray_encoder(camera_pos, rays)
         x = torch.cat((x, ray_enc), 1)
-
         x = self.conv_blocks(x)
         x = self.per_patch_linear(x)
         height, width = x.shape[2:]
