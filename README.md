@@ -2,6 +2,8 @@
 
 This is an independent PyTorch implementation of SRT, as presented in the paper
 ["Geometry-Free Novel View Synthesis Through Set-Latent Scene Representations"](https://srt-paper.github.io/) by Sajjadi et al., CVPR 2022.
+
+The authors have kindly [reviewed](https://srt-paper.github.io/#code) this code and confirmed that it appears to match their results.
 All credit for the model goes to the original authors.
 
 
