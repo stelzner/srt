@@ -85,7 +85,7 @@ class FeedForward(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0., selfatt=True):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0., selfatt=True, kv_dim=None):
         super().__init__()
         inner_dim = dim_head * heads
         project_out = not (heads == 1 and dim_head == dim)
@@ -98,7 +98,7 @@ class Attention(nn.Module):
             self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
         else:
             self.to_q = nn.Linear(dim, inner_dim, bias=False)
-            self.to_kv = nn.Linear(768, inner_dim * 2, bias=False)
+            self.to_kv = nn.Linear(kv_dim, inner_dim * 2, bias=False)
 
         self.to_out = nn.Sequential(
             nn.Linear(inner_dim, dim),
@@ -125,13 +125,13 @@ class Attention(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0., selfatt=True):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0., selfatt=True, kv_dim=None):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(nn.ModuleList([
                 PreNorm(dim, Attention(dim, heads=heads, dim_head=dim_head,
-                                       dropout=dropout, selfatt=selfatt)),
+                                       dropout=dropout, selfatt=selfatt, kv_dim=kv_dim)),
                 PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout))
             ]))
 

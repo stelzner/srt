@@ -4,6 +4,11 @@ This is an independent PyTorch implementation of SRT, as presented in the paper
 ["Geometry-Free Novel View Synthesis Through Set-Latent Scene Representations"](https://srt-paper.github.io/) by Sajjadi et al., CVPR 2022.
 All credit for the model goes to the original authors.
 
+**New:** This repo now also supports the
+[improved version of SRT](https://github.com/stelzner/srt/tree/main/runs/msn/isrt)
+discussed in Appendix A.4 of the
+[OSRT paper](https://osrt-paper.github.io/). It yields higher reconstruction accuracy, uses fewer parameters, and runs faster. An example checkpoint is provided below.
+
 
 <img src="https://drive.google.com/uc?id=1K1hX4jc50tVc1sCLacPT0p8SjWjkcRgv" alt="NMR Rotation" width="256"/><img src="https://drive.google.com/uc?id=1-yF6QD-v663beyGgevmt8MDuH2FByeuS" alt="MSN Rotation" width="256"/>
 
@@ -68,8 +73,11 @@ Here you find some checkpoints which partially reproduce the quantitative result
 |---|---|---|---|
 |`nmr/srt` |3 Million | 27.28 |[Link](https://drive.google.com/file/d/1gBSMKBduIgweWsVdUSxK-ugGwb0QFd3D/view?usp=sharing)|
 |`msn/srt` |4 Million*| 23.39 |[Link](https://drive.google.com/file/d/1cGxY-g99u63Jj_DcmUIudCfJk5yVsu68/view?usp=sharing)|
+|`msn/isrt`|2.8 Million** |24.84|[Link](https://drive.google.com/file/d/12gr3deWgGhwDZrAjwT6XmO7w2XYd2J_B/view?usp=sharing)|
 
-(\*) The MSN run was largely trained with a batch size of 192, due to memory constrains.
+(\*) The SRT MSN run was largely trained with a batch size of 192, due to memory constrains.
+(\*\*) Similarly, the ISRT MSN run was trained with a batch size of 48, and 4096 target pixels per
+training scene.
 
 ### Known Issues
 On the NMR dataset, SRT overfits to the 24 camera positions in the training dataset (left). It will generally not produce coherent images when given other cameras at test time (right).
