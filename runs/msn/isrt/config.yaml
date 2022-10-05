@@ -1,0 +1,27 @@
+data:
+  dataset: msn
+  num_points: 8192
+  kwargs:
+    canonical_view: False
+model:
+  encoder: isrt
+  encoder_kwargs:
+    pos_start_octave: -5
+  decoder: isrt
+  decoder_kwargs:
+    pos_start_octave: -5
+
+training:
+  num_workers: 1
+  batch_size: 256
+  model_selection_metric: psnr
+  model_selection_mode: maximize
+  print_every: 10
+  visualize_every: 5000
+  validate_every: 5000
+  checkpoint_every: 1000
+  backup_every: 25000
+  max_it: 4000000
+  decay_it: 4000000
+  lr_warmup: 2500
+
