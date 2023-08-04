@@ -14,7 +14,7 @@ class SRT(nn.Module):
 
         if cfg['decoder'] == 'lightfield':
             self.decoder = SRTDecoder(**cfg['decoder_kwargs'])
-        elif cfg['encoder'] == 'isrt':
+        elif cfg['decoder'] == 'isrt':
             self.decoder = ImprovedSRTDecoder(**cfg['decoder_kwargs'])
         elif cfg['decoder'] == 'nerf':
             self.decoder = NerfDecoder(**cfg['decoder_kwargs'])
